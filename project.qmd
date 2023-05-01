@@ -1,6 +1,6 @@
 ---
 title: "STA210 Final Project"
-author: "Aryan Mathur, Molly Hoenecker"
+author: "Aryan Mathur, Molly Honecker"
 format: pdf
 ---
 
