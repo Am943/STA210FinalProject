@@ -4,23 +4,46 @@ author: "Aryan Mathur, Molly Honecker"
 format: pdf
 ---
 
-## Quarto
+### Introduction
 
-Quarto enables you to weave together content and executable code into a finished document. To learn more about Quarto see <https://quarto.org>.
+```{r read-data, message = F, warning = F}
+library(tidyverse)
+library(tidymodels)
+library(lme4)
+library(lubridate)
 
-## Running Code
+baseball <- read_csv("baseball.csv")
+colnames(baseball) <- gsub(" ", "_", colnames(baseball))
+colnames(baseball) <- tolower(colnames(baseball))
 
-When you click the **Render** button a document will be generated that includes both content and the output of embedded code. You can embed code like this:
+baseball$month <- month(as.Date(baseball$date))
+baseball$score_diff <- baseball$home_team_score - baseball$visiting_team_score
+baseball$home_win <- ifelse(baseball$home_team_score > baseball$visiting_team_score, 1, 0)
 
-```{r}
-1 + 1
+m1 <- glm(home_win ~ attendance + time_of_game_minutes + day_night_indicator + day_of_week + home_team_game_number + visiting_team_game_number + month,
+          data = baseball,
+          family = 'binomial')
+
+summary(m1)
 ```
 
-You can add options to executable code like this 
+
 
 ```{r}
-#| echo: false
-2 * 2
+
+m1_aug = augment(m1)
+m1_aug <- m1_aug %>% 
+  mutate(prob = exp(.fitted)/(1 + exp(.fitted)),
+         pred_home = ifelse(prob > 0.5, "home win", "not home win")) %>% 
+  select(.fitted, prob, pred_home, home_win)
+table(m1_aug$pred_home, m1_aug$home_win)
 ```
 
-The `echo: false` option disables the printing of code (only output is displayed).
+
+```{r}
+m1_aug$pred_home_num <- ifelse(m1_aug$pred_home == "home win", 1, 0)
+
+accuracy <- sum(m1_aug$pred_home_num == m1_aug$home_win) / nrow(m1_aug)
+
+accuracy
+```
