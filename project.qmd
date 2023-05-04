@@ -20,13 +20,28 @@ baseball$month <- month(as.Date(baseball$date))
 baseball$score_diff <- baseball$home_team_score - baseball$visiting_team_score
 baseball$home_win <- ifelse(baseball$home_team_score > baseball$visiting_team_score, 1, 0)
 
-m1 <- glm(home_win ~ attendance + time_of_game_minutes + day_night_indicator + day_of_week + home_team_game_number + visiting_team_game_number + month,
+m1 <- glm(home_win ~ attendance + day_night_indicator + day_of_week + home_team_game_number + visiting_team_game_number + month,
           data = baseball,
           family = 'binomial')
 
 summary(m1)
 ```
 
+```{r}
+
+```
+
+```{r}
+
+m2 <- glm(home_win ~ home_team + attendance + day_night_indicator + 
+            day_of_week + home_team_game_number +
+            as.factor(visiting_league),
+          data = baseball,
+          family = 'binomial')
+
+summary(m2)
+
+```
 
 
 ```{r}
@@ -35,7 +50,8 @@ m1_aug = augment(m1)
 m1_aug <- m1_aug %>% 
   mutate(prob = exp(.fitted)/(1 + exp(.fitted)),
          pred_home = ifelse(prob > 0.5, "home win", "not home win")) %>% 
-  select(.fitted, prob, pred_home, home_win)
+  dplyr::select(.fitted, prob, pred_home, home_win)
+
 table(m1_aug$pred_home, m1_aug$home_win)
 ```
 
@@ -47,3 +63,30 @@ accuracy <- sum(m1_aug$pred_home_num == m1_aug$home_win) / nrow(m1_aug)
 
 accuracy
 ```
+
+
+```{r}
+m2_aug = augment(m2)
+m2_aug <- m2_aug %>% 
+  mutate(prob = exp(.fitted)/(1 + exp(.fitted)),
+         pred_home = ifelse(prob > 0.5, "home win", "not home win")) %>% 
+  dplyr::select(.fitted, prob, pred_home, home_win)
+
+table(m2_aug$pred_home, m2_aug$home_win)
+
+m2_aug$pred_home_num <- ifelse(m2_aug$pred_home == "home win", 1, 0)
+
+accuracy <- sum(m2_aug$pred_home_num == m2_aug$home_win) / nrow(m2_aug)
+
+accuracy
+```
+
+
+
+
+
+
+
+
+
+
