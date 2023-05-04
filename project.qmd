@@ -6,11 +6,21 @@ format: pdf
 
 ### Introduction
 
-```{r read-data, message = F, warning = F}
+```{r libraries, message = F, warning = F}
+
 library(tidyverse)
 library(tidymodels)
 library(lme4)
 library(lubridate)
+library(broom)
+library(leaps)
+library(MASS)
+library(caret)
+library(glmnet)
+library(Stat2Data)
+library(nnet)
+library(ggfortify)
+library(gee)
 
 baseball <- read_csv("baseball.csv")
 colnames(baseball) <- gsub(" ", "_", colnames(baseball))
@@ -20,29 +30,57 @@ baseball$month <- month(as.Date(baseball$date))
 baseball$score_diff <- baseball$home_team_score - baseball$visiting_team_score
 baseball$home_win <- ifelse(baseball$home_team_score > baseball$visiting_team_score, 1, 0)
 
-m1 <- glm(home_win ~ attendance + day_night_indicator + day_of_week + home_team_game_number + visiting_team_game_number + month,
-          data = baseball,
-          family = 'binomial')
+baseball <- baseball[!is.na(baseball$attendance),]
 
-summary(m1)
-```
-
-```{r}
+sum(is.na(baseball$attendance))
 
 ```
 
+```{r vars, message = F, error = F}
+
+baseball <- baseball %>%
+  mutate(yanks = ifelse(home_team == "NYA", 1, 0))
+
+baseball <- baseball %>%
+  mutate(extras = ifelse(length_of_game_outs > 54, 1, 0))
+
+```
+
+INSERT EXPLORATORY HERE!!!!!!!!!!!!!
+
+
 ```{r}
 
-m2 <- glm(home_win ~ home_team + attendance + day_night_indicator + 
-            day_of_week + home_team_game_number +
+library(glmnet)
+
+y <- baseball$home_win
+
+x <- model.matrix(home_win ~ home_team + attendance + day_night_indicator + 
+            day_of_week +
             as.factor(visiting_league),
-          data = baseball,
-          family = 'binomial')
+                  data = baseball,
+            family = "binomial")
 
-summary(m2)
+m_lasso_cv <- cv.glmnet(x, y, alpha = 1)
+
+best_lambda <- m_lasso_cv$lambda.min
+best_lambda
+
+m_best <- glmnet(x, y, alpha = 1, lambda = best_lambda, family = "binomial")
+m_best$beta
 
 ```
 
+```{r, warning = F}
+
+m6 <- glmer(home_win ~ 1 + attendance + day_night_indicator + extras +
+              day_of_week + game_number + as.factor(month) + home_league + (1 | home_team),
+          data = baseball,
+          family = 'binomial')
+
+summary(m6)
+
+```
 
 ```{r}
 
@@ -60,23 +98,6 @@ table(m1_aug$pred_home, m1_aug$home_win)
 m1_aug$pred_home_num <- ifelse(m1_aug$pred_home == "home win", 1, 0)
 
 accuracy <- sum(m1_aug$pred_home_num == m1_aug$home_win) / nrow(m1_aug)
-
-accuracy
-```
-
-
-```{r}
-m2_aug = augment(m2)
-m2_aug <- m2_aug %>% 
-  mutate(prob = exp(.fitted)/(1 + exp(.fitted)),
-         pred_home = ifelse(prob > 0.5, "home win", "not home win")) %>% 
-  dplyr::select(.fitted, prob, pred_home, home_win)
-
-table(m2_aug$pred_home, m2_aug$home_win)
-
-m2_aug$pred_home_num <- ifelse(m2_aug$pred_home == "home win", 1, 0)
-
-accuracy <- sum(m2_aug$pred_home_num == m2_aug$home_win) / nrow(m2_aug)
 
 accuracy
 ```
