@@ -93,7 +93,39 @@ emplogitplot1(home_win ~ attendance, data = baseball, ngroups = 100)
 
 ```
 
+```{r, message = F, error = F}
 
+baseballpreddata <- baseball[, c("attendance", "day_of_week", "month", "home_team")]
+
+jvalues <- with(baseball, seq(from = min(attendance), to = max(attendance), length.out = 100))
+
+# calculate predicted probabilities and store in a list
+pp <- lapply(jvalues, function(j) {
+    baseballpreddata$attendance <- j
+    predict(m7, newdata = baseballpreddata, type = "response")
+})
+
+```
+
+```{r}
+
+# get the means with lower and upper quartiles
+plotdat <- t(sapply(pp, function(x) {
+    c(M = mean(x), quantile(x, c(0.25, 0.75)))
+}))
+
+# add in LengthofStay values and convert to data frame
+plotdat <- as.data.frame(cbind(plotdat, jvalues))
+
+colnames(plotdat) <- c("PredictedProbability", "Lower", "Upper", "Attendance")
+
+plotdat
+
+ggplot(plotdat, aes(x = Attendance, y = PredictedProbability)) + 
+  geom_linerange(aes(ymin = Lower, ymax = Upper)) + 
+  geom_line(size = 2) + ylim(c(0, 1))
+
+```
 
 
 
