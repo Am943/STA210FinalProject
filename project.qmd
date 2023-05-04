@@ -6,7 +6,7 @@ format: pdf
 
 ### Introduction
 
-```{r libraries, message = F, warning = F}
+```{r libraries_data, message = F, warning = F}
 
 library(tidyverse)
 library(tidymodels)
@@ -39,20 +39,23 @@ sum(is.na(baseball$attendance))
 ```{r vars, message = F, error = F}
 
 baseball <- baseball %>%
-  mutate(yanks = ifelse(home_team == "NYA", 1, 0))
+  mutate(extras = ifelse(length_of_game_outs > 54, 1, 0))
 
 baseball <- baseball %>%
-  mutate(extras = ifelse(length_of_game_outs > 54, 1, 0))
+  mutate(weekend = ifelse(day_of_week == "Fri" | 
+                            day_of_week == "Sat" | 
+                            day_of_week == "Sun", 1, 0))
 
 ```
 
 INSERT EXPLORATORY HERE!!!!!!!!!!!!!
 
 
-```{r model, message = F, warning = F}
+```{r initialmodel, message = F, warning = F}
 
 m6 <- glmer(home_win ~ 1 + attendance + day_night_indicator + extras +
-              day_of_week + game_number + as.factor(month) + home_league + (1 | home_team),
+              day_of_week + game_number + as.factor(month) + 
+              home_league + (1 | home_team),
           data = baseball,
           family = 'binomial')
 
@@ -76,6 +79,7 @@ m_best$beta
 
 ```
 
+
 ```{r model, message = F, warning = F}
 
 m7 <- glmer(home_win ~ 1 + attendance + day_of_week + 
@@ -87,47 +91,33 @@ summary(m7)
 
 ```
 
-```{r}
+```{r coef, message = F, error = F}
+(exp(1.226e-05))
+
+(exp(5.461e-01))
+```
+
+
+```{r model, message = F, warning = F}
+
+m8 <- glmer(home_win ~ 1 + attendance + weekend + 
+              as.factor(month) + (1 | home_team),
+          data = baseball,
+          family = 'binomial')
+
+summary(m8)
+
+```
+
+```{r coef2, message = F, error = F}
+
+exp(-2.375e-01)
+
+```
+
+```{r logitplot, message = F, error = F}
 
 emplogitplot1(home_win ~ attendance, data = baseball, ngroups = 100)
 
 ```
-
-```{r, message = F, error = F}
-
-baseballpreddata <- baseball[, c("attendance", "day_of_week", "month", "home_team")]
-
-jvalues <- with(baseball, seq(from = min(attendance), to = max(attendance), length.out = 100))
-
-# calculate predicted probabilities and store in a list
-pp <- lapply(jvalues, function(j) {
-    baseballpreddata$attendance <- j
-    predict(m7, newdata = baseballpreddata, type = "response")
-})
-
-```
-
-```{r}
-
-# get the means with lower and upper quartiles
-plotdat <- t(sapply(pp, function(x) {
-    c(M = mean(x), quantile(x, c(0.25, 0.75)))
-}))
-
-# add in LengthofStay values and convert to data frame
-plotdat <- as.data.frame(cbind(plotdat, jvalues))
-
-colnames(plotdat) <- c("PredictedProbability", "Lower", "Upper", "Attendance")
-
-plotdat
-
-ggplot(plotdat, aes(x = Attendance, y = PredictedProbability)) + 
-  geom_linerange(aes(ymin = Lower, ymax = Upper)) + 
-  geom_line(size = 2) + ylim(c(0, 1))
-
-```
-
-
-
-
 
