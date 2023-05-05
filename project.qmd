@@ -4,8 +4,6 @@ author: "Aryan Mathur, Molly Honecker"
 format: pdf
 ---
 
-### Introduction
-
 ```{r libraries_data, message = F, warning = F}
 
 library(tidyverse)
@@ -48,18 +46,15 @@ baseball <- baseball %>%
 
 ```
 
-INSERT EXPLORATORY HERE!!!!!!!!!!!!!
-
-
 ```{r initialmodel, message = F, warning = F}
 
-m6 <- glmer(home_win ~ 1 + attendance + day_night_indicator + extras +
+m1 <- glmer(home_win ~ 1 + attendance + day_night_indicator + extras +
               day_of_week + game_number + as.factor(month) + 
               home_league + (1 | home_team),
           data = baseball,
           family = 'binomial')
 
-summary(m6)
+summary(m1)
 
 ```
 
@@ -80,38 +75,28 @@ m_best$beta
 ```
 
 
-```{r model, message = F, warning = F}
+```{r finalmodel, message = F, warning = F}
 
-m7 <- glmer(home_win ~ 1 + attendance + day_of_week + 
+m2 <- glmer(home_win ~ 1 + attendance + weekend + 
               as.factor(month) + (1 | home_team),
           data = baseball,
           family = 'binomial')
 
-summary(m7)
-
-```
-
-```{r coef, message = F, error = F}
-(exp(1.226e-05))
-
-(exp(5.461e-01))
-```
-
-
-```{r model, message = F, warning = F}
-
-m8 <- glmer(home_win ~ 1 + attendance + weekend + 
-              as.factor(month) + (1 | home_team),
-          data = baseball,
-          family = 'binomial')
-
-summary(m8)
+summary(m2)
 
 ```
 
 ```{r coef2, message = F, error = F}
 
-exp(-2.375e-01)
+attendance <- exp(1.325e-05)
+
+weekend <- exp(-2.375e-01)
+
+october <- exp(5.589e-01)
+
+attendance
+weekend
+october
 
 ```
 
